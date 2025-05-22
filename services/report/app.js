@@ -24,7 +24,28 @@ async function printReport() {
 }
 
 async function consume() {
-    //TODO: Constuir a comunicação com a fila 
-} 
+    try {
+        const rabbit = await RabbitMQService.getInstance()
+        await rabbit.consume('report', async (msg) => {
+            try {
+                const saleData = JSON.parse(msg.content)
+
+                if (!saleData.products || !Array.isArray(saleData.products)) {
+                    console.log("Venda Reprovada")
+                    return
+                }
+
+                await updateReport(saleData.products)
+                console.log("✔ VENDA PROCESSADA COM SUCESSO")
+                await printReport()
+
+            } catch (error) {
+                console.log(`X ERROR TO PROCESS: ${error.response}`)
+            }
+        })
+    } catch (error) {
+        console.log(`X ERROR TO PROCESS: ${error.response}`)
+    }
+}
 
 consume()
